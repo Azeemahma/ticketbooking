@@ -56,14 +56,13 @@
   <script>
     const rows = [];
 
-    
     function initializeSeats() {
-      rows.length = 0; 
+      rows.length = 0;
       for (let r = 0; r < 7; r++) {
         const seatsInRow = r === 6 ? 3 : 7;
         const row = [];
         for (let s = 0; s < seatsInRow; s++) {
-          row.push({ selected: false }); 
+          row.push({ selected: false });
         }
         rows.push(row);
       }
@@ -88,36 +87,52 @@
 
     function allocateSeats() {
       const count = parseInt(document.getElementById('passengerCount').value);
-      const candidates = [];
-
       
+      // Special case: if booking exactly 3 seats, prioritize row 7 first
+      if (count === 3) {
+        const row7 = rows[6];
+        for (let i = 0; i <= row7.length - count; i++) {
+          const block = row7.slice(i, i + count);
+          if (block.every(seat => !seat.selected)) {
+            for (let j = i; j < i + count; j++) {
+              row7[j].selected = true;
+            }
+            renderSeats();
+            return;
+          }
+        }
+      }
+
+      // Normal case: search sequentially from first row to last
       for (let r = 0; r < rows.length; r++) {
         const row = rows[r];
         for (let i = 0; i <= row.length - count; i++) {
           const block = row.slice(i, i + count);
           if (block.every(seat => !seat.selected)) {
-            const left = i > 0 ? row[i - 1].selected : false;
-            const right = i + count < row.length ? row[i + count].selected : false;
-            const isolationScore = (!left && !right) ? 2 : (!left || !right) ? 1 : 0;
-            candidates.push({ row: r, start: i, isolationScore });
+            for (let j = i; j < i + count; j++) {
+              row[j].selected = true;
+            }
+            renderSeats();
+            return;
           }
         }
       }
 
-      if (candidates.length === 0) {
-        alert("No suitable seats available for this group size.");
-        return;
+      // If no contiguous block found, try to find individual seats
+      if (count === 1) {
+        for (let r = 0; r < rows.length; r++) {
+          const row = rows[r];
+          for (let i = 0; i < row.length; i++) {
+            if (!row[i].selected) {
+              row[i].selected = true;
+              renderSeats();
+              return;
+            }
+          }
+        }
       }
 
-      
-      candidates.sort((a, b) => b.isolationScore - a.isolationScore);
-
-      const best = candidates[0];
-      for (let i = best.start; i < best.start + count; i++) {
-        rows[best.row][i].selected = true;
-      }
-
-      renderSeats();
+      alert("No suitable seats available for this group size.");
     }
 
     function resetSeats() {
@@ -125,7 +140,7 @@
       renderSeats();
     }
 
-    
+    // Init
     initializeSeats();
     renderSeats();
   </script>
