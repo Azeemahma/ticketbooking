@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Persistent Smart Seat Booking</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    select, button {
+      font-size: 16px;
+      margin: 10px 5px 10px 0;
+      padding: 5px;
+    }
+    .row {
+      margin-bottom: 10px;
+    }
+    .seat {
+      width: 30px;
+      height: 30px;
+      margin: 3px;
+      display: inline-block;
+      text-align: center;
+      line-height: 30px;
+      border: 1px solid #444;
+      cursor: default;
+    }
+    .vacant {
+      background-color: red;
+    }
+    .filled {
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Smart Ticket Booking System</h2>
+
+  <label for="passengerCount">Select number of passengers (1–7):</label>
+  <select id="passengerCount">
+    <option value="1">1</option>
+    <option value="2">2</option>
+    <option value="3">3</option>
+    <option value="4">4</option>
+    <option value="5">5</option>
+    <option value="6">6</option>
+    <option value="7">7</option>
+  </select>
+  <button onclick="allocateSeats()">Book Seats</button>
+  <button onclick="resetSeats()">Reset All</button>
+
+  <div id="seatingArea"></div>
+
+  <script>
+    const rows = [];
+
+    
+    function initializeSeats() {
+      rows.length = 0; 
+      for (let r = 0; r < 7; r++) {
+        const seatsInRow = r === 6 ? 3 : 7;
+        const row = [];
+        for (let s = 0; s < seatsInRow; s++) {
+          row.push({ selected: false }); 
+        }
+        rows.push(row);
+      }
+    }
+
+    function renderSeats() {
+      const area = document.getElementById('seatingArea');
+      area.innerHTML = '';
+      rows.forEach((row, rowIndex) => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'row';
+        rowDiv.innerHTML = `<strong>Row ${rowIndex + 1}:</strong> `;
+        row.forEach((seat, seatIndex) => {
+          const seatDiv = document.createElement('div');
+          seatDiv.className = 'seat ' + (seat.selected ? 'filled' : 'vacant');
+          seatDiv.innerText = seatIndex + 1;
+          rowDiv.appendChild(seatDiv);
+        });
+        area.appendChild(rowDiv);
+      });
+    }
+
+    function allocateSeats() {
+      const count = parseInt(document.getElementById('passengerCount').value);
+      const candidates = [];
+
+      
+      for (let r = 0; r < rows.length; r++) {
+        const row = rows[r];
+        for (let i = 0; i <= row.length - count; i++) {
+          const block = row.slice(i, i + count);
+          if (block.every(seat => !seat.selected)) {
+            const left = i > 0 ? row[i - 1].selected : false;
+            const right = i + count < row.length ? row[i + count].selected : false;
+            const isolationScore = (!left && !right) ? 2 : (!left || !right) ? 1 : 0;
+            candidates.push({ row: r, start: i, isolationScore });
+          }
+        }
+      }
+
+      if (candidates.length === 0) {
+        alert("No suitable seats available for this group size.");
+        return;
+      }
+
+      
+      candidates.sort((a, b) => b.isolationScore - a.isolationScore);
+
+      const best = candidates[0];
+      for (let i = best.start; i < best.start + count; i++) {
+        rows[best.row][i].selected = true;
+      }
+
+      renderSeats();
+    }
+
+    function resetSeats() {
+      initializeSeats();
+      renderSeats();
+    }
+
+    
+    initializeSeats();
+    renderSeats();
+  </script>
+
+</body>
+</html>
